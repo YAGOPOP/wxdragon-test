@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 wxdragon = "0.9.16"
+
+[build-dependencies]
+embed-manifest = "1.4"

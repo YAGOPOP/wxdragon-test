@@ -10,7 +10,6 @@ fn main() {
 
         if let Some(app) = wxdragon::app::get_app() {
             app.set_appearance(Appearance::Light);
-            dbg!(Appearance::System);
         }
 
         let sizer = BoxSizer::builder(Orientation::Vertical).build();
