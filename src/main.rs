@@ -47,8 +47,10 @@ fn run() {
         let row_clone = row.clone();
         let panel_clone = panel_clone.clone();
         new_button_delete.on_click(move |_| {
-            row_clone.destroy();
-            panel_clone.layout();
+            call_after(Box::new(move || {
+                row_clone.destroy();
+                panel_clone.layout();
+            }))
         });
 
         row_sizer.add_stretch_spacer(1);
