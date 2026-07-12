@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wxdragon = {version = "0.9.17", features = ["xrc"]}
+image = "0.25.10"
+rfd = "0.17.2"
+wxdragon = "0.9.17"
 
 [build-dependencies]
 embed-manifest = "1.4"

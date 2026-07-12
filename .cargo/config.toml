@@ -1,2 +1,5 @@
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-l", "notify"]
+rustflags = [
+    "-l", "SDL2",
+    "-l", "notify",
+]

@@ -1,4 +1,5 @@
-use wxdragon::prelude::*;
+use image::{DynamicImage, imageops::FilterType};
+use wxdragon::{prelude::*, widgets::GenericStaticBitmap};
 
 fn main() {
     #[cfg(target_os = "windows")]
@@ -19,47 +20,91 @@ fn run() {
         .build();
 
     let panel = Panel::builder(&frame).build();
+    let scroll = ScrolledWindow::builder(&frame).build();
+    scroll.set_scroll_rate(0, 10);
+
     let sizer = BoxSizer::builder(Orientation::Vertical).build();
 
+    let panel_sizer = BoxSizer::builder(Orientation::Vertical).build();
     let button1 = Button::builder(&panel)
-        .with_label("Добавить кнопку")
+        .with_label("Выбрать папку набора")
         .build();
+    panel_sizer.add(&button1, 1, SizerFlag::AlignCenterHorizontal, 0);
+    panel.set_sizer(panel_sizer, true);
 
-    sizer.add(&button1, 0, SizerFlag::All, 10);
-    panel.set_sizer(sizer.clone(), true);
+    let frame_sizer = BoxSizer::builder(Orientation::Vertical).build();
+    frame_sizer.add(&panel, 0, SizerFlag::Expand, 0);
+    frame_sizer.add(&scroll, 1, SizerFlag::Expand, 0);
+    frame.set_sizer(frame_sizer, true);
 
-    let panel_clone = panel.clone();
-    let sizer_clone = sizer.clone();
+    scroll.set_sizer(sizer.clone(), true);
 
-    let mut ctr = 0;
-    button1.on_click(move |_| {
-        ctr += 1;
-        let row = Panel::builder(&panel_clone).build();
+    let mut pic_ctr = 0;
+    button1.on_click({
+        let scroll_clone = scroll.clone();
+        let sizer_clone = sizer.clone();
+        let frame_clone = frame.clone();
+        move |_| {
+            pic_ctr += 1;
+            let row_sizer = BoxSizer::builder(Orientation::Horizontal).build();
+            let row = Panel::builder(&scroll_clone).build();
 
-        let new_button = Button::builder(&row)
-            .with_label(&format!("Новая кнопка {}", ctr))
-            .build();
-        let new_button_delete = Button::builder(&row)
-            .with_label(&format!("Удалить новую кнопку {}", ctr))
-            .build();
+            let row_picture =
+                GenericStaticBitmap::new_with_bitmap(&row, pic_ctr + 50, &Bitmap::null_bitmap());
+            row_sizer.add(&row_picture, 0, SizerFlag::AlignCenterVertical, 0);
 
-        let row_sizer = BoxSizer::builder(Orientation::Horizontal).build();
-        let row_clone = row.clone();
-        let panel_clone = panel_clone.clone();
-        new_button_delete.on_click(move |_| {
-            call_after(Box::new(move || {
-                row_clone.destroy();
-                panel_clone.layout();
-            }))
-        });
+            let picture_pick_button = Button::builder(&row).with_label("Выбрать картинку").build();
+            let section_delete_button = Button::builder(&row).with_label("Удалить пункт").build();
 
-        row_sizer.add_stretch_spacer(1);
-        row_sizer.add(&new_button, 0, SizerFlag::Shrink, 0);
-        row_sizer.add(&new_button_delete, 0, SizerFlag::Shrink, 0);
+            picture_pick_button.on_click({
+                let scroll_clone2 = scroll_clone.clone();
+                let frame_clone2 = frame_clone.clone();
+                let row_picture_clone = row_picture.clone();
+                move |_| {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+                        .pick_file()
+                    {
+                        let img = image::ImageReader::open(path).unwrap().decode().unwrap();
+                        let img_resized = fit_image(img, 300, 150);
+                        let img_rgba8 = img_resized.to_rgba8();
+                        let bitmap = Bitmap::from_rgba(
+                            &img_rgba8.as_raw(),
+                            img_rgba8.width(),
+                            img_rgba8.height(),
+                        )
+                        .unwrap();
 
-        row.set_sizer(row_sizer, true);
-        sizer_clone.add(&row, 0, SizerFlag::Expand, 10);
-        panel_clone.layout();
+                        row_picture_clone.set_bitmap(&bitmap);
+                        row.layout();
+                        scroll_clone2.layout();
+                        frame_clone2.layout();
+                    }
+                }
+            });
+
+            section_delete_button.on_click({
+                let row_clone = row.clone();
+                let scroll_clone3 = scroll_clone.clone();
+                let frame_clone3 = frame_clone.clone();
+                move |_| {
+                    call_after(Box::new(move || {
+                        row_clone.destroy();
+                        scroll_clone3.layout();
+                    }));
+                    frame_clone3.layout();
+                }
+            });
+
+            row_sizer.add_stretch_spacer(1);
+            row_sizer.add(&picture_pick_button, 0, SizerFlag::AlignCenterVertical, 0);
+            row_sizer.add(&section_delete_button, 0, SizerFlag::AlignCenterVertical, 0);
+
+            row.set_sizer(row_sizer, true);
+            sizer_clone.add(&row, 0, SizerFlag::Expand, 10);
+            scroll_clone.layout();
+            frame_clone.layout();
+        }
     });
 
     frame.set_min_size(Size {
@@ -68,4 +113,16 @@ fn run() {
     });
     frame.show(true);
     frame.centre();
+}
+
+fn fit_image(img: DynamicImage, max_width: u32, max_height: u32) -> DynamicImage {
+    let w = img.width() as f32;
+    let h = img.height() as f32;
+
+    let scale = (max_width as f32 / w).min(max_height as f32 / h);
+
+    let new_w = (w * scale).round() as u32;
+    let new_h = (h * scale).round() as u32;
+
+    img.resize_exact(new_w, new_h, FilterType::Triangle)
 }
