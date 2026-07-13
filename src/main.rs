@@ -38,17 +38,12 @@ fn run() {
     frame_sizer.add(&scroll, 1, SizerFlag::Expand, 0);
     frame.set_sizer(frame_sizer, true);
 
-    scroll.set_sizer(sizer.clone(), true);
-
     let mut pic_ctr = 0;
     button1.on_click({
-        let scroll_clone = scroll.clone();
-        let sizer_clone = sizer.clone();
-        let frame_clone = frame.clone();
         move |_| {
             pic_ctr += 1;
             let row_sizer = BoxSizer::builder(Orientation::Horizontal).build();
-            let row = Panel::builder(&scroll_clone).build();
+            let row = Panel::builder(&scroll).build();
 
             let row_picture =
                 GenericStaticBitmap::new_with_bitmap(&row, pic_ctr + 50, &Bitmap::null_bitmap());
@@ -58,9 +53,6 @@ fn run() {
             let section_delete_button = Button::builder(&row).with_label("Удалить пункт").build();
 
             picture_pick_button.on_click({
-                let scroll_clone2 = scroll_clone.clone();
-                let frame_clone2 = frame_clone.clone();
-                let row_picture_clone = row_picture.clone();
                 move |_| {
                     if let Some(path) = rfd::FileDialog::new()
                         .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
@@ -76,24 +68,21 @@ fn run() {
                         )
                         .unwrap();
 
-                        row_picture_clone.set_bitmap(&bitmap);
+                        row_picture.set_bitmap(&bitmap);
                         row.layout();
-                        scroll_clone2.layout();
-                        frame_clone2.layout();
+                        scroll.layout();
+                        frame.layout();
                     }
                 }
             });
 
             section_delete_button.on_click({
-                let row_clone = row.clone();
-                let scroll_clone3 = scroll_clone.clone();
-                let frame_clone3 = frame_clone.clone();
                 move |_| {
                     call_after(Box::new(move || {
-                        row_clone.destroy();
-                        scroll_clone3.layout();
+                        row.destroy();
+                        scroll.layout();
                     }));
-                    frame_clone3.layout();
+                    frame.layout();
                 }
             });
 
@@ -102,11 +91,13 @@ fn run() {
             row_sizer.add(&section_delete_button, 0, SizerFlag::AlignCenterVertical, 0);
 
             row.set_sizer(row_sizer, true);
-            sizer_clone.add(&row, 0, SizerFlag::Expand, 10);
-            scroll_clone.layout();
-            frame_clone.layout();
+            sizer.add(&row, 0, SizerFlag::Expand, 10);
+            scroll.layout();
+            frame.layout();
         }
     });
+
+    scroll.set_sizer(sizer, true);
 
     frame.set_min_size(Size {
         width: 300,
