@@ -1,14 +1,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use image::{DynamicImage, imageops::FilterType};
+use wxdragon::appearance::*;
 use wxdragon::{prelude::*, widgets::GenericStaticBitmap};
 
 fn main() {
-    init_platform();
-
     wxdragon::main(|_| run()).unwrap();
 }
 
 fn run() {
+    if let Some(app) = wxdragon::app::get_app() {
+        app.set_appearance(Appearance::System);
+    }
+
     let frame = Frame::builder()
         .with_title("Catpack Maker")
         .with_size(Size {
@@ -123,11 +126,4 @@ fn fit_image(img: DynamicImage, max_width: u32, max_height: u32) -> DynamicImage
     let new_h = (h * scale).round() as u32;
 
     img.resize_exact(new_w, new_h, FilterType::Triangle)
-}
-
-fn init_platform() {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        std::env::set_var("wx_msw_dark_mode", "1");
-    }
 }
