@@ -46,7 +46,7 @@ fn run() {
             let row = Panel::builder(&scroll).build();
 
             let row_picture =
-                GenericStaticBitmap::new_with_bitmap(&row, pic_ctr + 50, &Bitmap::null_bitmap());
+                GenericStaticBitmap::new_with_bitmap(&row, pic_ctr, &Bitmap::null_bitmap());
             row_sizer.add(&row_picture, 0, SizerFlag::AlignCenterVertical, 0);
 
             let picture_pick_button = Button::builder(&row).with_label("Выбрать картинку").build();
