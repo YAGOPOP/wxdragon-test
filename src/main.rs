@@ -1,7 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use image::{DynamicImage, imageops::FilterType};
+use std::thread;
 use wxdragon::appearance::*;
 use wxdragon::{prelude::*, widgets::GenericStaticBitmap};
+
+const IMG_WIDTH: i32 = 300;
+const IMG_HEIGHT: i32 = 150;
 
 fn main() {
     wxdragon::main(|_| run()).unwrap();
@@ -58,17 +62,21 @@ fn run() {
                         .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
                         .pick_file()
                     {
-                        let img = image::ImageReader::open(path).unwrap().decode().unwrap();
-                        let img_resized = fit_image(img, 300, 150);
-                        let img_rgba8 = img_resized.to_rgba8();
-                        let bitmap = Bitmap::from_rgba(
-                            &img_rgba8.as_raw(),
-                            img_rgba8.width(),
-                            img_rgba8.height(),
-                        )
-                        .unwrap();
+                        row_picture.set_bitmap(&Bitmap::new(IMG_WIDTH, IMG_HEIGHT).unwrap());
+                        thread::spawn(move || {
+                            let img = image::ImageReader::open(path).unwrap().decode().unwrap();
+                            let img = fit_image(img, IMG_WIDTH, IMG_HEIGHT);
+                            let rgba = img.to_rgba8();
 
-                        row_picture.set_bitmap(&bitmap);
+                            let w = rgba.width();
+                            let h = rgba.height();
+                            let data = rgba.into_raw();
+
+                            call_after(Box::new(move || {
+                                let bmp = Bitmap::from_rgba(&data, w, h).unwrap();
+                                row_picture.set_bitmap(&bmp);
+                            }));
+                        });
                         row.layout();
                         scroll.layout();
                         frame.layout();
@@ -107,7 +115,7 @@ fn run() {
     frame.centre();
 }
 
-fn fit_image(img: DynamicImage, max_width: u32, max_height: u32) -> DynamicImage {
+fn fit_image(img: DynamicImage, max_width: i32, max_height: i32) -> DynamicImage {
     let w = img.width() as f32;
     let h = img.height() as f32;
 
@@ -116,5 +124,5 @@ fn fit_image(img: DynamicImage, max_width: u32, max_height: u32) -> DynamicImage
     let new_w = (w * scale).round() as u32;
     let new_h = (h * scale).round() as u32;
 
-    img.resize_exact(new_w, new_h, FilterType::Triangle)
+    img.resize_exact(new_w, new_h, FilterType::CatmullRom)
 }
